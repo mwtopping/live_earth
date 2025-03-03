@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Go Event Stream Text Update</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+            }
+            
+            h1 {
+                color: #333;
+            }
+            
+            #message {
+                padding: 15px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                background-color: #f9f9f9;
+                min-height: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Testing event stream messaging and formatting</h1>
+        <p id="message">No messages yet!</p>
+
+        <script type="text/javascript">
+            const eventSrc = new EventSource("/events");
+            const messageElement = document.getElementById("message");
+
+            eventSrc.onmessage = (event) => {
+                console.log(event);
+//                messageElement.textContent = event.data;
+//                messageElement.innerHTML = event.data.replace(/\n/g, '<br>');
+                messageElement.textContent = event.data;
+                messageElement.style.whiteSpace = "pre-wrap";
+            };
+            
+            // Optional: Handle connection open
+            eventSrc.onopen = () => {
+                console.log("Connection to event stream established");
+            };
+            
+            // Optional: Handle errors
+            eventSrc.onerror = (error) => {
+                console.error("EventSource failed:", error);
+                messageElement.textContent = "Connection to event stream failed or closed";
+            };
+        </script>
+    </body>
+</html>
