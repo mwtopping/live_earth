@@ -6,18 +6,65 @@ import (
 	"math"
 )
 
-func show_image(img [][]float32) {
-	for _, row := range img {
-		fmt.Println(row)
+var shades string
+
+func clip(x float64) float64 {
+	if x < 0 {
+		return 0.0
 	}
+	return x
 }
 
-func draw_ball() {
+func show_image(img [][]float32) []string {
+
+	my_strings := make([]string, 0)
+
+	//	shades = " .:-=+*#%@"
+	shades = "@%#*+=-:. "
+	for _, row := range img {
+		this_row := ""
+		for _, c := range row {
+			index := int(c * 8)
+			fmt.Printf("%v", string(shades[index]))
+			this_row += string(shades[index])
+		}
+		fmt.Println()
+		my_strings = append(my_strings, this_row)
+	}
+
+	return my_strings
+
+}
+
+func reflect_vector(v, norm mat.VecDense) mat.VecDense {
+	refl := mat.NewVecDense(3, nil)
+
+	dot := mat.Dot(&v, &norm)
+
+	temp := mat.NewVecDense(norm.Len(), nil)
+	temp.ScaleVec(2*dot, &norm)
+
+	refl.SubVec(&v, temp)
+
+	return *refl
+}
+
+func normalize(vec *mat.VecDense) mat.VecDense {
+	norm := vec.Norm(2)
+
+	normed_vector := mat.NewVecDense(3, nil)
+
+	normed_vector.ScaleVec(1/norm, vec)
+
+	return *normed_vector
+}
+
+func draw_ball(angle float64) []string {
 
 	fmt.Println("Drawing Circle")
 
-	nx := 21
-	ny := 21
+	nx := 41
+	ny := 81
 
 	// create blank image
 	img := make([][]float32, nx)
@@ -25,29 +72,64 @@ func draw_ball() {
 		img[i] = make([]float32, ny)
 	}
 
-	light_pos := mat.NewVecDense(3, []float64{1.0, 1.0, 0.2})
+	light_pos := mat.NewVecDense(3, []float64{math.Sin(angle), math.Cos(angle), 0.5})
 	fmt.Println(light_pos)
+
+	ones := make([]float64, 3)
+	for i := range ones {
+		ones[i] = -1
+	}
+	id := mat.NewDiagDense(3, ones)
 
 	// main loop
 	for ix := range nx {
 		for iy := range ny {
-			x := 0.1 * float64(ix-10)
-			y := 0.1 * float64(iy-10)
+			x := 0.05 * float64(ix-20)
+			y := 0.025 * float64(iy-40)
 
 			// projected distance from sphere
 			r := math.Sqrt(x*x + y*y)
 
 			if r < 1.0 {
-				img[ix][iy] = 1
+				sx := x
+				sy := y
+				sz := math.Sqrt(1 - x*x - y*y)
+				sphere_loc := mat.NewVecDense(3, []float64{sx, sy, sz})
+				norm_sphere_loc := normalize(sphere_loc)
+
+				vi := mat.NewVecDense(3, nil)
+				//				vi.AddScaledVec(&norm_sphere_loc, -1.0, light_pos)
+				vi.SubVec(light_pos, mat.NewVecDense(3, []float64{0, 0, 0}))
+				*vi = normalize(vi)
+
+				nmatrix := mat.NewDense(norm_sphere_loc.Len(),
+					norm_sphere_loc.Len(), nil)
+
+				nmatrix.Outer(1.0, &norm_sphere_loc, &norm_sphere_loc)
+				nmatrix.Scale(2.0, nmatrix)
+
+				nmatrix.Add(nmatrix, id)
+
+				si := mat.NewVecDense(3, nil)
+				si.MulVec(nmatrix, vi)
+				fmt.Println(si)
+
+				diffuse := 0.15
+				direct := clip(0.35 * mat.Dot(vi, &norm_sphere_loc))
+				specular := 0.5 * math.Pow(clip(mat.Dot(mat.NewVecDense(3, []float64{0, 0, 1}), si)), 6)
+
+				img[ix][iy] = float32(diffuse + direct + specular)
+
 			}
 		}
 	}
 
-	show_image(img)
+	return show_image(img)
 }
 
-//def normalize(vec):
-//    return vec/np.linalg.norm(vec)
+// ReflectVector computes the reflection of vector v across the normal vector norm
+// using the formula: refl = v - 2 * dot(v, norm) * norm
+// Both vectors must be unit vectors
 
 //def reflect_vector(v, norm):
 //
@@ -92,7 +174,6 @@ func draw_ball() {
 //                direct = 0.35*np.dot(vi,norm)
 //
 //                specular = 0.5*(np.max((0, np.dot(np.array([0,0,1]), si)))**6)
-//
 //
 //                amount = diffuse + np.max((0, direct)) + specular
 //

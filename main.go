@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -19,28 +18,26 @@ func handleSSE(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
+	angle := 0.0
+
 	for {
 		select {
 		case <-r.Context().Done():
 			return
 		default:
-			//			fmt.Fprintf(w, "data: ==================\n")
-			//			fmt.Fprintf(w, "data: ==================\n%v\n=================\n\n", time.Now())
-			//			fmt.Fprintf(w, "==================\n\n")
-			for i := 0; i < 20; i++ {
-				fmt.Fprintf(w, "data: Line %d of event %v\n", i, time.Now())
+			image := draw_ball(angle)
+			for _, row := range image {
+				fmt.Fprintf(w, "data: %v\n", row)
 			}
 			fmt.Fprintf(w, "\n")
 			flusher.Flush()
-			time.Sleep(1 * time.Second)
+			angle += 0.1
+			time.Sleep(100 * time.Millisecond)
 		}
 	}
 }
 
 func main() {
-
-	draw_ball()
-	os.Exit(0)
 
 	const port = ":8080"
 

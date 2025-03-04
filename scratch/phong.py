@@ -72,12 +72,12 @@ for ia, ang in tqdm(enumerate(np.linspace(0, 6.28, 100)), total=100):
 
 
 
-#    fig, ax = plt.subplots()
+    fig, ax = plt.subplots()
 
 
     print(r"{}".format(str_img))
     print(len(str_img))
-#    ax.imshow(img, origin='lower')
-#    plt.show()
+    ax.imshow(img, origin='lower')
+    plt.show()
     plt.close('all')
 
