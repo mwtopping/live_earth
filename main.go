@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -37,6 +38,9 @@ func handleSSE(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+
+	draw_ball()
+	os.Exit(0)
 
 	const port = ":8080"
 
