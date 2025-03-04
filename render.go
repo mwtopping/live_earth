@@ -3,10 +3,15 @@ package main
 import (
 	"fmt"
 	"gonum.org/v1/gonum/mat"
+	"image"
 	"math"
 )
 
 var shades string
+
+func mapRange(value, fromMin, fromMax, toMin, toMax float64) float64 {
+	return (value-fromMin)/(fromMax-fromMin)*(toMax-toMin) + toMin
+}
 
 func clip(x float64) float64 {
 	if x < 0 {
@@ -25,10 +30,51 @@ func show_image(img [][]float32) []string {
 		this_row := ""
 		for _, c := range row {
 			index := int(c * 8)
-			fmt.Printf("%v", string(shades[index]))
 			this_row += string(shades[index])
 		}
-		fmt.Println()
+		my_strings = append(my_strings, this_row)
+	}
+
+	return my_strings
+
+}
+
+func show_raw_image(phis, thetas [][]float32, image image.Image) []string {
+
+	my_strings := make([]string, 0)
+
+	shades = " .:-=+*#%@"
+	for ip, row := range phis {
+		this_row := ""
+		for it, _ := range row {
+			phi := 512 - int(phis[ip][it])
+			theta := int(thetas[ip][it])
+			vals := image.At(theta, phi)
+			_, _, b, _ := vals.RGBA()
+			//				this_row += fmt.Sprintf("%d ", b/8192)
+			index := b / 8192
+
+			this_row += string(shades[index])
+		}
+		my_strings = append(my_strings, this_row)
+	}
+
+	return my_strings
+
+}
+
+func sample_image(img [][]float32) []string {
+
+	my_strings := make([]string, 0)
+
+	//	shades = " .:-=+*#%@"
+	for _, row := range img {
+		this_row := ""
+		for i, c := range row {
+			if i%2 == 0 {
+				this_row += fmt.Sprintf("%.1f ", c)
+			}
+		}
 		my_strings = append(my_strings, this_row)
 	}
 
@@ -59,9 +105,8 @@ func normalize(vec *mat.VecDense) mat.VecDense {
 	return *normed_vector
 }
 
+// draws a simple sphere with phong shading model implemented
 func draw_ball(angle float64) []string {
-
-	fmt.Println("Drawing Circle")
 
 	nx := 41
 	ny := 81
@@ -73,7 +118,6 @@ func draw_ball(angle float64) []string {
 	}
 
 	light_pos := mat.NewVecDense(3, []float64{math.Sin(angle), math.Cos(angle), 0.5})
-	fmt.Println(light_pos)
 
 	ones := make([]float64, 3)
 	for i := range ones {
@@ -112,7 +156,6 @@ func draw_ball(angle float64) []string {
 
 				si := mat.NewVecDense(3, nil)
 				si.MulVec(nmatrix, vi)
-				fmt.Println(si)
 
 				diffuse := 0.15
 				direct := clip(0.35 * mat.Dot(vi, &norm_sphere_loc))
@@ -127,69 +170,48 @@ func draw_ball(angle float64) []string {
 	return show_image(img)
 }
 
-// ReflectVector computes the reflection of vector v across the normal vector norm
-// using the formula: refl = v - 2 * dot(v, norm) * norm
-// Both vectors must be unit vectors
+func draw_earth(angle float64, earth_image image.Image) []string {
 
-//def reflect_vector(v, norm):
-//
-//    norm = normalize(norm)
-//    refl = v - 2 * np.dot(v, norm) * norm
-//    return refl
+	//	nx := 41
+	//	ny := 81
 
-//
-//shades = " .:-=+*#%@"
-//
-//
-//for ia, ang in tqdm(enumerate(np.linspace(0, 6.28, 100)), total=100):
-//
-//    str_img = ""
-//
-//    lightpos = np.array([np.sin(ang), np.cos(ang), 0.2])
-//    sloc = np.array([0,0,0])
-//
-//    for ix, x in enumerate(xs):
-//        for iy, y in enumerate(ys):
-//            amount = 0
-//            ## projected distance from center of sphere
-//            r = np.sqrt(x*x+y*y)
-//            if r <= 1: # in sphere
-//                sx = x
-//                sy = y
-//                sz = np.sqrt(1-x*x-y*y)
-//
-//                norm = normalize(np.array([sx, sy, sz]))
-//                vi = normalize(lightpos-sloc)
-//
-//                nmatrix = norm.copy().reshape(1, 3)
-//
-//    #            si = (2*np.matmul(np.matrix(norm), np.matrix(norm).T))
-//                si = np.matmul(2*np.outer( norm, norm) - np.identity(3), vi)
-//                vr = reflect_vector(vi, norm)
-//
-//
-//
-//                diffuse = 0.15
-//
-//                direct = 0.35*np.dot(vi,norm)
-//
-//                specular = 0.5*(np.max((0, np.dot(np.array([0,0,1]), si)))**6)
-//
-//                amount = diffuse + np.max((0, direct)) + specular
-//
-//                img[ix][iy] = diffuse + np.max((0, direct)) + specular
-//
-//#            str_img += shades[int(amount*70)]
-//            str_img += shades[int(amount*nshades)]
-//        str_img += "\n"
-//
-//
-//
-//#    fig, ax = plt.subplots()
-//
-//
-//    print(r"{}".format(str_img))
-//    print(len(str_img))
-//#    ax.imshow(img, origin='lower')
-//#    plt.show()
-//    plt.close('all')
+	nx := 81
+	ny := 161
+
+	// create blank image
+	phis := make([][]float32, nx)
+	thetas := make([][]float32, nx)
+	for i := range phis {
+		phis[i] = make([]float32, ny)
+		thetas[i] = make([]float32, ny)
+	}
+
+	// main loop
+	for ix := range nx {
+		for iy := range ny {
+			x := 0.025 * float64(ix-40)
+			y := 0.0125 * float64(iy-80)
+
+			// projected distance from sphere
+			r := math.Sqrt(x*x + y*y)
+
+			if r < 1.0 {
+				sx := x
+				sy := y
+				sz := math.Sqrt(1 - x*x - y*y)
+
+				theta := (math.Atan2(sy, sz) + math.Pi) + angle
+				if theta > 2*math.Pi {
+					theta -= 2 * math.Pi
+				}
+				phi := math.Acos(sx)
+
+				thetas[ix][iy] = float32(mapRange(theta, 0, 2*math.Pi, 0, 1024))
+				phis[ix][iy] = float32(mapRange(phi, 0, math.Pi, 0, 512))
+			}
+		}
+	}
+
+	return show_raw_image(phis, thetas, earth_image)
+
+}

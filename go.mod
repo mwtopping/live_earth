@@ -1,4 +1,4 @@
-module live_earth
+module github.com/mwtopping/live_earth
 
 go 1.24.0
 

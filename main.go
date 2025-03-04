@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"time"
 )
@@ -20,18 +21,24 @@ func handleSSE(w http.ResponseWriter, r *http.Request) {
 
 	angle := 0.0
 
+	earth_image := read_image("./assets/earth.png")
+
 	for {
 		select {
 		case <-r.Context().Done():
 			return
 		default:
-			image := draw_ball(angle)
+			//			image := draw_ball(angle)
+			image := draw_earth(angle, earth_image)
 			for _, row := range image {
 				fmt.Fprintf(w, "data: %v\n", row)
 			}
 			fmt.Fprintf(w, "\n")
 			flusher.Flush()
-			angle += 0.1
+			angle += 0.05
+			if angle > 2*math.Pi {
+				angle -= 2 * math.Pi
+			}
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
