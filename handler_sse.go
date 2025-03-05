@@ -19,8 +19,7 @@ func (cfg *config) handleSSE(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
-	log.Println(r.UserAgent())
-
+	// special behavior for mobile platform
 	device := "desktop"
 	if strings.Contains(r.UserAgent(), "Mobile") {
 		device = "mobile"
@@ -34,26 +33,33 @@ func (cfg *config) handleSSE(w http.ResponseWriter, r *http.Request) {
 		default:
 			switch device {
 			case "desktop":
-				image := draw_earth(cfg.angle, *cfg.img, 64)
-
-				for _, row := range image {
+				for _, row := range cfg.earth_render {
 					fmt.Fprintf(w, "data: %v\n", row)
 				}
 
 			case "mobile":
-				image := draw_earth(cfg.angle, *cfg.img, 16)
-
-				for _, row := range image {
-					fmt.Fprintf(w, "data: %v\n", row)
+				// make mobile version a factor of 4 smaller
+				for i := 0; i < len(cfg.earth_render); i += 4 {
+					fmt.Fprintf(w, "data: %v\n", extract_periodic(cfg.earth_render[i], 4))
 				}
 
 			}
 			fmt.Fprintf(w, "\n")
 			flusher.Flush()
 
-			// probably want this to be the same as the angle update frequency
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(cfg.update_frequency)
 
 		}
 	}
+}
+
+func extract_periodic(s string, n int) string {
+	b := make([]byte, 0)
+
+	//for _, c := range string {
+	for i := 0; i < len(s); i += n {
+		b = append(b, s[i])
+	}
+
+	return string(b)
 }
