@@ -1,11 +1,10 @@
 <!doctype html>
 <html>
     <head>
-        <title>Go Event Stream Text Update</title>
+        <title>Go Ascii Earth</title>
         <style>
             body {
                 font-family: monospace, monospace;
-                max-width: 1800px;
                 margin: 0 auto;
                 padding: 20px;
             }
@@ -40,8 +39,6 @@
 
             eventSrc.onmessage = (event) => {
                 console.log(event);
-//                messageElement.textContent = event.data;
-//                messageElement.innerHTML = event.data.replace(/\n/g, '<br>');
                 messageElement.textContent = event.data;
                 messageElement.style.whiteSpace = "pre-wrap";
             };

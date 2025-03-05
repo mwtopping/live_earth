@@ -170,13 +170,13 @@ func draw_ball(angle float64) []string {
 	return show_image(img)
 }
 
-func draw_earth(angle float64, earth_image image.Image) []string {
+func draw_earth(angle float64, earth_image image.Image, size int) []string {
 
 	//	nx := 41
 	//	ny := 81
 
-	nx := 81
-	ny := 161
+	nx := size + 1
+	ny := 2*size + 1
 
 	// create blank image
 	phis := make([][]float32, nx)
@@ -189,8 +189,8 @@ func draw_earth(angle float64, earth_image image.Image) []string {
 	// main loop
 	for ix := range nx {
 		for iy := range ny {
-			x := 0.025 * float64(ix-40)
-			y := 0.0125 * float64(iy-80)
+			x := float64(ix-size/2) / float64(size/2)
+			y := float64(iy-size) / float64(size)
 
 			// projected distance from sphere
 			r := math.Sqrt(x*x + y*y)
